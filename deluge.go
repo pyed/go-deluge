@@ -1,22 +1,3 @@
-// Copyright 2013 Bruno Albuquerque (bga@bug-br.org.br).
-//
-// Licensed under the Apache License, Version 2.0 (the "License"); you may not
-// use this file except in compliance with the License. You may obtain a copy of
-// the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-// License for the specific language governing permissions and limitations under
-// the License.
-
-// Package deluge implements a Go wrapper around the Deluge Remote JSON API
-// (http://deluge-torrent.org/docs/1.2/core/rpc.html#remote-api). This allows
-// programmers to control Deluge (http://deluge-torrent.org) programatically
-// from inside Go programs. Note this is a work in progress and not everything
-// is implemented but adding extra RPC calls is trivial.
 package deluge
 
 import (
@@ -58,41 +39,107 @@ func New(url, password string) (*Deluge, error) {
 	return d, err
 }
 
-// CoreAddTorrentFile wraps the core.add_torrent_file RPC call. fileName is the
-// name of the original torrent file. fileDump is the base64 encoded contents of
-// the file and options is a map with options to be set (consult de Deluge
-// Torrent documentation for a list of valid options).
-func (d *Deluge) CoreAddTorrentFile(fileName, fileDump string, options map[string]interface{}) (string, error) {
+func (d *Deluge) GetTorrent(hash string) (*Torrent, error) {
+	response, err := d.sendJsonRequest("core.get_torrent_status", []interface{}{hash, []string{}})
+	if err != nil {
+		return nil, err
+	}
+
+	torrent := new(Torrent)
+
+	data, err := json.Marshal(response["result"].(map[string]interface{}))
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(data, torrent)
+	if err != nil {
+		return nil, err
+	}
+
+	if torrent.Hash == "" {
+		return torrent, fmt.Errorf("No such torrent with hash: %s", hash)
+	}
+
+	return torrent, nil
+}
+
+func (d *Deluge) GetTorrents() (Torrents, error) {
+	response, err := d.sendJsonRequest("core.get_torrents_status", []interface{}{nil, []string{}})
+	if err != nil {
+		return nil, err
+	}
+
+	jsonMap := response["result"].(map[string]interface{})
+	torrents := make(Torrents, 0, len(jsonMap))
+
+	for _, v := range jsonMap {
+		torrent := new(Torrent)
+		data, err := json.Marshal(v)
+		if err != nil {
+			return torrents, err
+		}
+
+		err = json.Unmarshal(data, torrent)
+		if err != nil {
+			return torrents, err
+		}
+
+		torrents = append(torrents, torrent)
+	}
+
+	return torrents, nil
+}
+
+func (d *Deluge) AddTorrentFile(fileName, fileDump string, options map[string]interface{}) (string, error) {
 	response, err := d.sendJsonRequest("core.add_torrent_file", []interface{}{fileName, fileDump, options})
 	if err != nil {
 		return "", err
 	}
 
+	if response["result"] == nil {
+		return "", fmt.Errorf("Error adding: %s\nMaybe already added ?", fileName)
+	}
+
 	return response["result"].(string), nil
 }
 
-// CoreAddTorrentMagnet wraps the core.add_torrent_magnet RPC call. magnetUrl is
-// the Magnet URL for the torrent and options is a map with options to be set
-// (consult de Deluge Torrent documentation for a list of valid options).
-func (d *Deluge) CoreAddTorrentMagnet(magnetUrl string, options map[string]interface{}) (string, error) {
+func (d *Deluge) AddTorrentMagnet(magnetUrl string, options map[string]interface{}) (string, error) {
 	response, err := d.sendJsonRequest("core.add_torrent_magnet", []interface{}{magnetUrl, options})
 	if err != nil {
 		return "", err
 	}
 
+	if response["result"] == nil {
+		return "", fmt.Errorf("Error adding: %s\nMaybe already added ?", magnetUrl)
+	}
+
 	return response["result"].(string), nil
 }
 
-// CoreAddTorrentUrl wraps the core.add_torrent_url RPC call. torrentUrl is
-// the URL for the torrent and options is a map with options to be set
-// (consult de Deluge Torrent documentation for a list of valid options).
-func (d *Deluge) CoreAddTorrentUrl(torrentUrl string, options map[string]interface{}) (string, error) {
+func (d *Deluge) AddTorrentUrl(torrentUrl string, options map[string]interface{}) (string, error) {
 	response, err := d.sendJsonRequest("core.add_torrent_url", []interface{}{torrentUrl, options})
 	if err != nil {
 		return "", err
 	}
-
+	if response["result"] == nil {
+		return "", fmt.Errorf("Error adding: %s\nMaybe already added ?", torrentUrl)
+	}
 	return response["result"].(string), nil
+}
+
+func (d *Deluge) RemoveTorrent(hash string, removeData bool) error {
+	// make sure that we have a torrent with the giving hash;
+	// attempting to remove a hash that doesn't exists stalls for ever.
+	if _, err := d.GetTorrent(hash); err != nil {
+		return err
+	}
+	_, err := d.sendJsonRequest("core.remove_torrent", []interface{}{hash, removeData})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (d *Deluge) authLogin() error {
@@ -131,7 +178,6 @@ func (d *Deluge) sendJsonRequest(method string, params []interface{}) (map[strin
 			req.AddCookie(cookie)
 		}
 	}
-
 	resp, err := d.client.Do(req)
 	if err != nil {
 		return nil, err
