@@ -134,11 +134,41 @@ func (d *Deluge) RemoveTorrent(hash string, removeData bool) error {
 	if _, err := d.GetTorrent(hash); err != nil {
 		return err
 	}
-	_, err := d.sendJsonRequest("core.remove_torrent", []interface{}{hash, removeData})
-	if err != nil {
+
+	if _, err := d.sendJsonRequest("core.remove_torrent", []interface{}{hash, removeData}); err != nil {
 		return err
 	}
 
+	return nil
+}
+
+func (d *Deluge) PauseTorrent(hash string) error {
+	if _, err := d.sendJsonRequest("core.pause_torrent", []interface{}{[]string{hash}}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *Deluge) StartTorrent(hash string) error {
+	if _, err := d.sendJsonRequest("core.resume_torrent", []interface{}{[]string{hash}}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *Deluge) PauseAll() error {
+	if _, err := d.sendJsonRequest("core.pause_all_torrents", []interface{}{}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *Deluge) StartAll() error {
+	if _, err := d.sendJsonRequest("core.resume_all_torrents", []interface{}{}); err != nil {
+		return err
+	}
 	return nil
 }
 
