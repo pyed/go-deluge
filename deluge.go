@@ -39,6 +39,7 @@ func New(url, password string) (*Deluge, error) {
 	return d, err
 }
 
+// GetTorrent takes a hash of a torrent to return *Torrent.
 func (d *Deluge) GetTorrent(hash string) (*Torrent, error) {
 	response, err := d.sendJsonRequest("core.get_torrent_status", []interface{}{hash, []string{}})
 	if err != nil {
@@ -64,6 +65,7 @@ func (d *Deluge) GetTorrent(hash string) (*Torrent, error) {
 	return torrent, nil
 }
 
+// GetTorrents returns `Torrents` which is a slice of all available torrents.
 func (d *Deluge) GetTorrents() (Torrents, error) {
 	response, err := d.sendJsonRequest("core.get_torrents_status", []interface{}{nil, []string{}})
 	if err != nil {
@@ -91,6 +93,7 @@ func (d *Deluge) GetTorrents() (Torrents, error) {
 	return torrents, nil
 }
 
+// AddTorrentFile add torrent by file.
 func (d *Deluge) AddTorrentFile(fileName, fileDump string, options map[string]interface{}) (string, error) {
 	response, err := d.sendJsonRequest("core.add_torrent_file", []interface{}{fileName, fileDump, options})
 	if err != nil {
@@ -104,6 +107,7 @@ func (d *Deluge) AddTorrentFile(fileName, fileDump string, options map[string]in
 	return response["result"].(string), nil
 }
 
+// AddTorrentMagnet adds a torrent via magnet url.
 func (d *Deluge) AddTorrentMagnet(magnetUrl string, options map[string]interface{}) (string, error) {
 	response, err := d.sendJsonRequest("core.add_torrent_magnet", []interface{}{magnetUrl, options})
 	if err != nil {
@@ -117,6 +121,7 @@ func (d *Deluge) AddTorrentMagnet(magnetUrl string, options map[string]interface
 	return response["result"].(string), nil
 }
 
+// AddTorrentUrl adds a torrent via http URL.
 func (d *Deluge) AddTorrentUrl(torrentUrl string, options map[string]interface{}) (string, error) {
 	response, err := d.sendJsonRequest("core.add_torrent_url", []interface{}{torrentUrl, options})
 	if err != nil {
@@ -128,6 +133,7 @@ func (d *Deluge) AddTorrentUrl(torrentUrl string, options map[string]interface{}
 	return response["result"].(string), nil
 }
 
+// RemoveTorrent takes a hash of torrent to delete
 func (d *Deluge) RemoveTorrent(hash string, removeData bool) error {
 	// make sure that we have a torrent with the giving hash;
 	// attempting to remove a hash that doesn't exists stalls for ever.
@@ -142,6 +148,7 @@ func (d *Deluge) RemoveTorrent(hash string, removeData bool) error {
 	return nil
 }
 
+// PauseTorrent takes a hash of a torrent to pause.
 func (d *Deluge) PauseTorrent(hash string) error {
 	if _, err := d.sendJsonRequest("core.pause_torrent", []interface{}{[]string{hash}}); err != nil {
 		return err
@@ -150,6 +157,7 @@ func (d *Deluge) PauseTorrent(hash string) error {
 	return nil
 }
 
+// StartTorrent takes a hash of a torrent to start.
 func (d *Deluge) StartTorrent(hash string) error {
 	if _, err := d.sendJsonRequest("core.resume_torrent", []interface{}{[]string{hash}}); err != nil {
 		return err
@@ -158,6 +166,7 @@ func (d *Deluge) StartTorrent(hash string) error {
 	return nil
 }
 
+// PauseAll pauses all torrents.
 func (d *Deluge) PauseAll() error {
 	if _, err := d.sendJsonRequest("core.pause_all_torrents", []interface{}{}); err != nil {
 		return err
@@ -165,6 +174,7 @@ func (d *Deluge) PauseAll() error {
 	return nil
 }
 
+// StartAll starts all torrents.
 func (d *Deluge) StartAll() error {
 	if _, err := d.sendJsonRequest("core.resume_all_torrents", []interface{}{}); err != nil {
 		return err
@@ -172,6 +182,16 @@ func (d *Deluge) StartAll() error {
 	return nil
 }
 
+// CheckTorrent takes a hash of a torrent to force re-check.
+func (d *Deluge) CheckTorrent(hash string) error {
+	if _, err := d.sendJsonRequest("core.force_recheck", []interface{}{[]string{hash}}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// authLogin gets called via New to authenticate with deluge.
 func (d *Deluge) authLogin() error {
 	response, err := d.sendJsonRequest("auth.login", []interface{}{d.password})
 	if err != nil {
@@ -185,6 +205,7 @@ func (d *Deluge) authLogin() error {
 	return nil
 }
 
+// sendJsonRequest takes a method and params to send to deluge and returns the output.
 func (d *Deluge) sendJsonRequest(method string, params []interface{}) (map[string]interface{}, error) {
 	atomic.AddUint64(&(d.id), 1)
 	data, err := json.Marshal(map[string]interface{}{
