@@ -191,6 +191,32 @@ func (d *Deluge) CheckTorrent(hash string) error {
 	return nil
 }
 
+// SpeedRate returns download and upload speed in bytes.
+func (d *Deluge) SpeedRate() (float64, float64, error) {
+	response, err := d.sendJsonRequest("core.get_session_status",
+		[]interface{}{[]string{"payload_download_rate", "payload_upload_rate"}})
+	if err != nil {
+		return -1, -1, err
+	}
+
+	data, err := json.Marshal(response["result"].(map[string]interface{}))
+	if err != nil {
+		return -1, -1, err
+	}
+
+	rate := &struct {
+		Download float64 `json:"payload_download_rate"`
+		Upload   float64 `json:"payload_upload_rate"`
+	}{}
+
+	err = json.Unmarshal(data, rate)
+	if err != nil {
+		return -1, -1, err
+	}
+
+	return rate.Download, rate.Upload, nil
+}
+
 // authLogin gets called via New to authenticate with deluge.
 func (d *Deluge) authLogin() error {
 	response, err := d.sendJsonRequest("auth.login", []interface{}{d.password})
