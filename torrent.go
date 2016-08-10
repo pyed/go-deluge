@@ -1,5 +1,7 @@
 package deluge
 
+type Torrents []*Torrent
+
 type Torrent struct {
 	Comment             string  `json:"comment"`
 	ActiveTime          int     `json:"active_time"`
@@ -41,14 +43,14 @@ type Torrent struct {
 		Offset float64 `json:"offset"`
 		Size   float64 `json:"size"`
 	} `json:"files"`
-	TotalDone           float64       `json:"total_done"`
-	NumPieces           int           `json:"num_pieces"`
-	TrackerStatus       string        `json:"tracker_status"`
-	TotalSeeds          int           `json:"total_seeds"`
-	MoveOnCompleted     bool          `json:"move_on_completed"`
-	NextAnnounce        int           `json:"next_announce"`
-	StopAtRatio         bool          `json:"stop_at_ratio"`
-	FileProgress        []float64     `json:"file_progress"`
+	TotalDone       float64 `json:"total_done"`
+	NumPieces       int     `json:"num_pieces"`
+	TrackerStatus   string  `json:"tracker_status"`
+	TotalSeeds      int     `json:"total_seeds"`
+	MoveOnCompleted bool    `json:"move_on_completed"`
+	NextAnnounce    int     `json:"next_announce"`
+	StopAtRatio     bool    `json:"stop_at_ratio"`
+	// FileProgress        []float64     `json:"file_progress"`
 	MoveCompleted       bool          `json:"move_completed"`
 	PieceLength         float64       `json:"piece_length"`
 	AllTimeDownload     float64       `json:"all_time_download"`
@@ -77,5 +79,3 @@ type Torrent struct {
 	StopRatio            float64 `json:"stop_ratio"`
 	IsFinished           bool    `json:"is_finished"`
 }
-
-type Torrents []*Torrent
