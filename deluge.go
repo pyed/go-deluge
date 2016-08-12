@@ -217,6 +217,31 @@ func (d *Deluge) SpeedRate() (float64, float64, error) {
 	return rate.Download, rate.Upload, nil
 }
 
+// FilterTree wraps "get_filter_tree"
+func (d *Deluge) FilterTree() ([][]interface{}, [][]interface{}, error) {
+	response, err := d.sendJsonRequest("core.get_filter_tree", []interface{}{})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	data, err := json.Marshal(response["result"].(map[string]interface{}))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	tree := &struct {
+		State       [][]interface{} `json:"state"`
+		TrackerHost [][]interface{} `json:"tracker_host"`
+	}{}
+
+	err = json.Unmarshal(data, tree)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return tree.State, tree.TrackerHost, nil
+}
+
 // authLogin gets called via New to authenticate with deluge.
 func (d *Deluge) authLogin() error {
 	response, err := d.sendJsonRequest("auth.login", []interface{}{d.password})
