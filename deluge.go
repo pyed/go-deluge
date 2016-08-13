@@ -242,6 +242,25 @@ func (d *Deluge) FilterTree() ([][]interface{}, [][]interface{}, error) {
 	return tree.State, tree.TrackerHost, nil
 }
 
+// Version returns Deluge/libtorrent versions
+func (d *Deluge) Version() (string, string, error) {
+	response, err := d.sendJsonRequest("daemon.info", []interface{}{})
+	if err != nil {
+		return "", "", err
+	}
+
+	delugeVersion := response["result"].(string)
+
+	response, err = d.sendJsonRequest("core.get_libtorrent_version", []interface{}{})
+	if err != nil {
+		return delugeVersion, "", err
+	}
+
+	libtorrentVersion := response["result"].(string)
+
+	return delugeVersion, libtorrentVersion, nil
+}
+
 // authLogin gets called via New to authenticate with deluge.
 func (d *Deluge) authLogin() error {
 	response, err := d.sendJsonRequest("auth.login", []interface{}{d.password})
