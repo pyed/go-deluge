@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"sync/atomic"
 	"time"
 )
@@ -327,6 +328,15 @@ func (d *Deluge) sendJsonRequest(method string, params []interface{}) (map[strin
 	}
 
 	if result["error"] != nil {
+		// if the error has "Not authenticated", try to authLogin();
+		if strings.Contains(fmt.Sprintf("%v", result["error"]), "Not authenticated") {
+			if err := d.authLogin(); err != nil {
+				return nil, fmt.Errorf("json error : %v", result["error"])
+			}
+			// if the authentication is success, try again.
+			return d.sendJsonRequest(method, params)
+		}
+
 		return nil, fmt.Errorf("json error : %v", result["error"])
 	}
 
